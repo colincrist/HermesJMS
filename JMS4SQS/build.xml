@@ -1,0 +1,84 @@
+<project name="hermes" default="jar" basedir=".">
+
+	<!-- Dependent 3rd party libraries are defined in the build.properties file -->
+
+	<property file="build.properties" />
+
+	<property name="src" value="source" />
+	<property name="src.java" value="${src}/java" />
+	<property name="resources" value="${src}/resources" />
+	<property name="src.lib" value="lib" />
+	<property name="build" value="build" />
+	<property name="build.classes" value="build/classes" />
+	<property name="classes" value="${build.classes}" />
+	<property name="lib" value="${build}/lib" />
+	<property name="bin" value="${build}/bin"/>
+	<property name="src.bin" value="${src}/bin"/>
+
+	<macrodef name="convertUnixLineEndings">
+		<element name="files" implicit="true" />
+		<sequential>
+			<replaceregexp flags="smg" match="\r$" replace="" byline="false">
+				<files />
+			</replaceregexp>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="convertUnixScripts">
+		<attribute name="dir" />
+		<sequential>
+			<convertUnixLineEndings>
+				<fileset dir="@{dir}/bin" includes="*.sh" />
+			</convertUnixLineEndings>
+		</sequential>
+	</macrodef>
+
+	<target name="init">
+		<mkdir dir="${build}" />
+		<mkdir dir="${classes}" />
+		<mkdir dir="${lib}"/>
+
+		<!-- The core classpath -->
+
+		<path id="project.classpath">
+			<fileset dir="${src.lib}">
+				<include name="*.jar" />
+			</fileset>
+		</path>
+
+		</target>
+
+	<target name="compile" depends="init">
+
+		<javac destdir="${classes}" deprecation="on" debug="true">
+			<src path="${src.java}" />
+		
+			<classpath refid="project.classpath" />
+		</javac>
+	</target>
+
+	<target name="jar" depends="compile">
+		<jar jarfile="${lib}/jms4sqs.jar">
+			<fileset dir="${classes}" />
+			<fileset dir="${resources}" />
+
+		</jar>
+
+			<copy todir="${lib}">
+			<fileset dir="${src.lib}">
+				<include name="**/*.jar" />
+			</fileset>
+		</copy>
+			<copy todir="${bin}">
+			  <fileset dir="${src.bin}"/>
+			  </copy>
+
+	</target>
+
+
+	<target name="clean">
+		<delete dir="${build}" />
+	</target>
+
+</project>
+
