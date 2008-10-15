@@ -18,23 +18,42 @@ package jms4sqs;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import com.codestreet.selector.ISelector;
+import com.codestreet.selector.Selector;
+import com.codestreet.selector.jms.ValueProvider;
+import com.codestreet.selector.parser.IValueProvider;
+import com.codestreet.selector.parser.Result;
 import com.xerox.amazonws.sqs2.Message;
 import com.xerox.amazonws.sqs2.MessageQueue;
 import com.xerox.amazonws.sqs2.SQSException;
 
-public class SqsUtils {
+public class SqsUtils
+{
 
-	public static boolean readMessages(MessageQueue messageQueue,
-			ConcurrentLinkedQueue<javax.jms.Message> jmsMessages, int prefetch)
-			throws SQSException {
+   public static boolean readMessages(MessageQueue messageQueue, ConcurrentLinkedQueue<javax.jms.Message> jmsMessages, int prefetch, ISelector selector)
+         throws SQSException
+   {
 
-		final Message[] messages = messageQueue.receiveMessages(prefetch);
+      final Message[] messages = messageQueue.receiveMessages(prefetch);
 
-		for (Message message : messages) {
-			jmsMessages.add(MessageFactory.create(message));
-		}
+      for (Message message : messages)
+      {
+         if (selector == null)
+         {
+            jmsMessages.add(MessageFactory.create(message));
+         }
+         else
+         {
+            javax.jms.Message jmsMessage = MessageFactory.create(message);
+            IValueProvider values = ValueProvider.valueOf(jmsMessage);
+            if (selector.eval(values, null) == Result.RESULT_TRUE)
+            {
+               jmsMessages.add(jmsMessage);
+            }
+         }
+      }
 
-		return messages.length > 0;
-	}
+      return messages.length > 0;
+   }
 
 }

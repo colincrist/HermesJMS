@@ -26,6 +26,9 @@ import javax.jms.MessageListener;
 import javax.jms.Queue;
 import javax.jms.QueueReceiver;
 
+import com.codestreet.selector.ISelector;
+import com.codestreet.selector.Selector;
+import com.codestreet.selector.parser.InvalidSelectorException;
 import com.xerox.amazonws.sqs2.SQSException;
 
 public class SqsQueueReceiver implements QueueReceiver {
@@ -39,13 +42,26 @@ public class SqsQueueReceiver implements QueueReceiver {
 	private ConcurrentLinkedQueue<javax.jms.Message> deliveredMessages = new ConcurrentLinkedQueue<javax.jms.Message>();	
 	private AtomicBoolean closed = new AtomicBoolean(false);
 	private SqsQueueSession session;
-
-	public SqsQueueReceiver(SqsQueueSession session, SqsQueue queue,
-			SqsConnectionFactory connectionFactory) {
-		this.queue = queue;
+	private ISelector selectorImpl ;
 	
+	public SqsQueueReceiver(SqsQueueSession session, SqsQueue queue,
+			SqsConnectionFactory connectionFactory, String selector) throws JMSException {
+		this.queue = queue;
+		this.selector = selector ;
 		this.connectionFactory = connectionFactory;
 		this.session = session ;
+		
+		if (selector != null)
+		{
+		   try
+		   {
+		      selectorImpl = Selector.getInstance(selector) ;
+		   }
+		   catch (InvalidSelectorException ex)
+		   {
+		      throw new SqsException(ex) ;
+		   }
+		}
 	}
 
 	public void stop()
@@ -109,7 +125,7 @@ public class SqsQueueReceiver implements QueueReceiver {
 	public boolean poll() throws JMSException {
 		try {
 			return SqsUtils.readMessages(queue.getMessageQueue(), jmsMessages, connectionFactory
-					.getPreFetch());
+					.getPreFetch(), selectorImpl);
 		} catch (SQSException ex) {
 			throw new SqsException(ex);
 		}

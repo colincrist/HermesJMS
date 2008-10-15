@@ -20,16 +20,16 @@ import java.util.Enumeration;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import javax.jms.JMSException;
-
 import javax.jms.Queue;
 import javax.jms.QueueBrowser;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.codestreet.selector.ISelector;
+import com.codestreet.selector.Selector;
+import com.codestreet.selector.parser.InvalidSelectorException;
 import com.xerox.amazonws.sqs2.MessageQueue;
-import com.xerox.amazonws.sqs2.Message;
-import com.xerox.amazonws.sqs2.SQSException;
 
 public class SqsQueueBrowser implements QueueBrowser {
 
@@ -38,6 +38,7 @@ public class SqsQueueBrowser implements QueueBrowser {
 	private MessageQueue messageQueue;
 	private SqsConnectionFactory connectionFactory;
 	private String selector;
+	private ISelector selectorImpl ;
 
 	private class MyEnumeration implements Enumeration<javax.jms.Message> {
 		private ConcurrentLinkedQueue<javax.jms.Message> messages = new ConcurrentLinkedQueue<javax.jms.Message>();
@@ -46,7 +47,7 @@ public class SqsQueueBrowser implements QueueBrowser {
 			if (messages.size() == 0) {
 				try {
 					return SqsUtils.readMessages(messageQueue, messages,
-							connectionFactory.getPreFetch());
+							connectionFactory.getPreFetch(), selectorImpl);
 				} catch (Exception ex) {
 					throw new SqsRuntimeException(ex);
 				}
@@ -61,10 +62,24 @@ public class SqsQueueBrowser implements QueueBrowser {
 	}
 
 	public SqsQueueBrowser(Queue queue, MessageQueue messageQueue,
-			SqsConnectionFactory connectionFactory) {
+			SqsConnectionFactory connectionFactory, String selector) throws JMSException {
 		this.queue = queue;
 		this.messageQueue = messageQueue;
 		this.connectionFactory = connectionFactory;
+		this.selector = selector ;
+		
+		if (selector != null)
+		{
+		   try
+		   {
+		      this.selectorImpl = Selector.getInstance(selector) ;
+		   }
+		   catch (InvalidSelectorException ex)
+		   {
+		      throw new SqsException(ex) ;
+		   }
+		}
+		
 	}
 
 	public void close() throws JMSException {

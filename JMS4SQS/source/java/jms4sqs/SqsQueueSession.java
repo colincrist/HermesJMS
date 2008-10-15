@@ -107,14 +107,7 @@ public class SqsQueueSession implements QueueSession
 
    public QueueBrowser createBrowser(Queue queue) throws JMSException
    {
-      try
-      {
-         return new SqsQueueBrowser(queue, queueService.getOrCreateMessageQueue(queue.getQueueName()), connectionFactory);
-      }
-      catch (SQSException ex)
-      {
-         throw new SqsException(ex);
-      }
+      return createBrowser(queue, null) ;
    }
    
    private final SqsQueueSender register(SqsQueueSender sender)
@@ -133,7 +126,7 @@ public class SqsQueueSession implements QueueSession
    {
       try
       {
-         return new SqsQueueBrowser(queue, queueService.getOrCreateMessageQueue(queue.getQueueName()), connectionFactory);
+         return new SqsQueueBrowser(queue, queueService.getOrCreateMessageQueue(queue.getQueueName()), connectionFactory, selector);
       }
       catch (SQSException ex)
       {
@@ -155,11 +148,16 @@ public class SqsQueueSession implements QueueSession
 
    public QueueReceiver createReceiver(Queue queue) throws JMSException
    {
+     return createReceiver(queue, null) ;
+   }
+
+   public QueueReceiver createReceiver(Queue queue, String selector) throws JMSException
+   {
       try
       {
          if (queue instanceof SqsQueue)
          {
-            return register(new SqsQueueReceiver(this, (SqsQueue) queue,  connectionFactory));
+            return register(new SqsQueueReceiver(this, (SqsQueue) queue,  connectionFactory, selector));
          }
          else
          {
@@ -170,11 +168,6 @@ public class SqsQueueSession implements QueueSession
       {
          throw new SqsException(ex);
       }
-   }
-
-   public QueueReceiver createReceiver(Queue queue, String selector) throws JMSException
-   {
-      return createReceiver(queue) ;
    }
 
    public QueueSender createSender(Queue queue) throws JMSException
@@ -216,9 +209,14 @@ public class SqsQueueSession implements QueueSession
 
    public MessageConsumer createConsumer(Destination destination) throws JMSException
    {
+      return createConsumer(destination, null) ;
+   }
+
+   public MessageConsumer createConsumer(Destination destination, String selector) throws JMSException
+   {
       if (destination instanceof SqsQueue)
       {
-         return new SqsQueueReceiver(this, (SqsQueue) destination, connectionFactory) ;
+         return new SqsQueueReceiver(this, (SqsQueue) destination, connectionFactory, selector) ;
       }
       else
       {
@@ -226,14 +224,9 @@ public class SqsQueueSession implements QueueSession
       }
    }
 
-   public MessageConsumer createConsumer(Destination destination, String selector) throws JMSException
-   {
-     return createConsumer(destination) ;
-   }
-
    public MessageConsumer createConsumer(Destination destination, String selector, boolean noLocal) throws JMSException
    {
-      return createConsumer(destination) ;
+      return createConsumer(destination, selector) ;
    }
 
    public TopicSubscriber createDurableSubscriber(Topic arg0, String arg1) throws JMSException
